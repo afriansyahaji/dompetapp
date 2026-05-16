@@ -33,7 +33,7 @@
 body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-height:100vh;overflow-x:hidden}
 
 /* ── CONFIG ── */
-#cfg,#setup-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 24px;gap:20px}
+#cfg{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 24px;gap:20px}
 .cfg-logo{font-size:30px;font-weight:800;color:var(--acc);letter-spacing:-1px}
 .cfg-sub{font-size:13px;color:var(--dim);margin-top:4px}
 .cfg-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px}
@@ -208,24 +208,6 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
 </head>
 <body>
 
-<!-- SETUP SCREEN (first time only) -->
-<div id="setup-screen" style="display:none;min-height:100vh;flex-direction:column;justify-content:center;padding:32px 24px;gap:20px">
-  <div>
-    <div class="cfg-logo">dompet.</div>
-    <div class="cfg-sub">Setup awal — sekali saja</div>
-  </div>
-  <div class="cfg-card">
-    <label>Supabase URL</label>
-    <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co">
-    <label>Supabase Anon Key</label>
-    <input type="text" id="cfg-key" placeholder="eyJhbGci...">
-    <label>OpenRouter API Key</label>
-    <input type="text" id="cfg-ai" placeholder="sk-or-...">
-  </div>
-  <button class="btn-acc" onclick="saveSetup()">Lanjut →</button>
-  <p style="font-size:12px;color:var(--muted);text-align:center">Cukup sekali, tidak perlu diulang</p>
-</div>
-
 <!-- LOGIN / REGISTER SCREEN -->
 <div id="cfg" style="display:none">
   <div>
@@ -254,7 +236,6 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
   <div id="login-ok" style="font-size:13px;color:var(--green);text-align:center;display:none;padding:4px 0"></div>
 
   <button class="btn-acc" id="login-btn" onclick="doAuth()">Masuk →</button>
-  <button class="btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="showSetup()">⚙️ Ubah konfigurasi API</button>
 </div>
 
 <!-- APP -->
@@ -449,130 +430,15 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
 <div class="toast" id="toast"></div>
 
 <script>
-let SB_URL='',SB_KEY='',AI_KEY='',AUTH_TOKEN='';
+let SB_URL='https://blelnfmmhtknrclmpmmf.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsZWxuZm1taHRrbnJjbG1wbW1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NjMwMDEsImV4cCI6MjA5NDQzOTAwMX0.LdAABuZHF-VkIH8YwuFKdy6qcnjirVLbWkWOPo3MS4M',AI_KEY='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',AUTH_TOKEN='';
 let txType='expense',selTxId=null,allTx=[],chartMode='daily',modalMode='expense';
 
 function getSav(){return JSON.parse(localStorage.getItem('sav')||'{"target":0,"entries":[],"logbook":[]}')}
 function setSav(d){localStorage.setItem('sav',JSON.stringify(d))}
 
-// ── SETUP (first time) ──
-function showSetup(){
-  document.getElementById('cfg').style.display='none';
-  document.getElementById('app').style.display='none';
-  document.getElementById('setup-screen').style.display='flex';
-}
-function saveSetup(){
-  const u=document.getElementById('cfg-url').value.trim();
-  const k=document.getElementById('cfg-key').value.trim();
-  const a=document.getElementById('cfg-ai').value.trim();
-  if(!u||!k||!a){showToast('Isi semua field!');return}
-  localStorage.setItem('sb_url',u);localStorage.setItem('sb_key',k);localStorage.setItem('gm_key',a);
-  SB_URL=u;SB_KEY=k;AI_KEY=a;
-  document.getElementById('setup-screen').style.display='none';
-  document.getElementById('cfg').style.display='flex';
-}
-
-// ── AUTH ──
-let authMode='login';
-
-function switchAuthTab(mode){
-  authMode=mode;
-  const isLogin=mode==='login';
-  document.getElementById('tab-login').style.background=isLogin?'var(--acc)':'transparent';
-  document.getElementById('tab-login').style.color=isLogin?'#0d0d0d':'var(--dim)';
-  document.getElementById('tab-register').style.background=isLogin?'transparent':'var(--acc)';
-  document.getElementById('tab-register').style.color=isLogin?'var(--dim)':'#0d0d0d';
-  document.getElementById('register-fields').style.display=isLogin?'none':'flex';
-  document.getElementById('login-btn').textContent=isLogin?'Masuk →':'Daftar →';
-  document.getElementById('auth-sub').textContent=isLogin?'Masuk ke akunmu':'Buat akun baru';
-  document.getElementById('login-err').style.display='none';
-  document.getElementById('login-ok').style.display='none';
-}
-
-async function doAuth(){
-  const email=document.getElementById('login-email').value.trim();
-  const pass=document.getElementById('login-pass').value;
-  if(!email||!pass){showToast('Isi email dan password!');return}
-  const btn=document.getElementById('login-btn');
-  const errEl=document.getElementById('login-err');
-  const okEl=document.getElementById('login-ok');
-  errEl.style.display='none';okEl.style.display='none';
-  btn.disabled=true;
-
-  if(authMode==='register'){
-    const pass2=document.getElementById('login-pass2').value;
-    if(pass!==pass2){errEl.textContent='Password tidak sama!';errEl.style.display='block';btn.disabled=false;return}
-    if(pass.length<6){errEl.textContent='Password minimal 6 karakter!';errEl.style.display='block';btn.disabled=false;return}
-    btn.textContent='Mendaftar...';
-    try{
-      const r=await fetch(SB_URL+'/auth/v1/signup',{
-        method:'POST',
-        headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({email,password:pass})
-      });
-      const d=await r.json();
-      if(!r.ok)throw new Error(d.error_description||d.msg||'Gagal daftar');
-      if(d.access_token){
-        // Auto login after register
-        AUTH_TOKEN=d.access_token;
-        localStorage.setItem('auth_token',AUTH_TOKEN);
-        localStorage.setItem('auth_email',email);
-        document.getElementById('cfg').style.display='none';
-        document.getElementById('app').style.display='flex';
-        loadTx();
-      }else{
-        okEl.textContent='✓ Akun berhasil dibuat! Silakan masuk.';
-        okEl.style.display='block';
-        switchAuthTab('login');
-        document.getElementById('login-email').value=email;
-      }
-    }catch(e){
-      errEl.textContent=e.message;errEl.style.display='block';
-    }finally{btn.textContent='Daftar →';btn.disabled=false;}
-
-  }else{
-    btn.textContent='Masuk...';
-    try{
-      const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{
-        method:'POST',
-        headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({email,password:pass})
-      });
-      const d=await r.json();
-      if(!r.ok)throw new Error(d.error_description||d.msg||'Email atau password salah');
-      AUTH_TOKEN=d.access_token;
-      localStorage.setItem('auth_token',AUTH_TOKEN);
-      localStorage.setItem('auth_email',email);
-      if(d.user&&d.user.id)localStorage.setItem('user_id',d.user.id);
-      document.getElementById('cfg').style.display='none';
-      document.getElementById('app').style.display='flex';
-      loadTx();
-    }catch(e){
-      errEl.textContent=e.message;errEl.style.display='block';
-    }finally{btn.textContent='Masuk →';btn.disabled=false;}
-  }
-}
-
-async function doLogout(){
-  try{await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+AUTH_TOKEN}});}catch(e){}
-  AUTH_TOKEN='';
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('auth_email');
-  localStorage.removeItem('user_id');
-  document.getElementById('app').style.display='none';
-  document.getElementById('cfg').style.display='flex';
-  document.getElementById('login-email').value='';
-  document.getElementById('login-pass').value='';
-  switchAuthTab('login');
-}
-
 function loadConfig(){
-  SB_URL=localStorage.getItem('sb_url')||'';
-  SB_KEY=localStorage.getItem('sb_key')||'';
-  AI_KEY=localStorage.getItem('gm_key')||'';
   AUTH_TOKEN=localStorage.getItem('auth_token')||'';
   const email=localStorage.getItem('auth_email')||'';
-  if(!SB_URL||!SB_KEY||!AI_KEY){showSetup();return}
   if(AUTH_TOKEN){
     document.getElementById('cfg').style.display='none';
     document.getElementById('app').style.display='flex';
