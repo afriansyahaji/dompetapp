@@ -1159,8 +1159,14 @@ async function analyzeWithGemini(base64, mimeType) {
   return JSON.parse(jsonMatch ? jsonMatch[0] : clean);
 }
 
+function fixAmount(amount) {
+  let val = parseInt(amount);
+  while (val > 10000000 && val % 1000 === 0) { val = val / 1000; }
+  return val;
+}
+
 function applyAIResult(result) {
-  if (result.amount) document.getElementById('input-amount').value = result.amount;
+  if (result.amount) document.getElementById('input-amount').value = fixAmount(result.amount);
   if (result.type) setType(result.type);
   if (result.category) document.getElementById('input-category').value = result.category;
   if (result.description) document.getElementById('input-desc').value = result.description;
