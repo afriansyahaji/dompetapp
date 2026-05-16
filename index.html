@@ -160,9 +160,9 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
 /* ── BOTTOM NAV ── */
 .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(13,13,13,.95);border-top:1px solid var(--border);display:flex;align-items:center;padding:10px 8px 24px;z-index:30;backdrop-filter:blur(12px)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px;border:none;background:transparent;cursor:pointer}
-.ni-ico{font-size:20px;opacity:.4;transition:opacity .2s}
+.ni-ico{opacity:.35;transition:opacity .2s;display:flex;align-items:center;justify-content:center;color:var(--dim)}
 .ni-lbl{font-size:10px;font-weight:700;color:var(--muted);transition:color .2s;letter-spacing:.3px}
-.ni.active .ni-ico{opacity:1}
+.ni.active .ni-ico{opacity:1;color:var(--acc)}
 .ni.active .ni-lbl{color:var(--acc)}
 .nfab{width:50px;height:50px;border-radius:50%;background:var(--acc);border:none;font-size:26px;color:#0d0d0d;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 20px rgba(200,255,0,.3);flex-shrink:0;font-weight:800;transition:transform .1s}
 .nfab:active{transform:scale(.92)}
@@ -328,17 +328,17 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
   <!-- BOTTOM NAV -->
   <div class="bnav">
     <button class="ni active" onclick="goPage('home',this)">
-      <span class="ni-ico">🏠</span><span class="ni-lbl">Beranda</span>
+      <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></span><span class="ni-lbl">Beranda</span>
     </button>
     <button class="ni" onclick="goPage('stats',this)">
-      <span class="ni-ico">📊</span><span class="ni-lbl">Statistik</span>
+      <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></span><span class="ni-lbl">Statistik</span>
     </button>
     <button class="nfab" onclick="openModal('expense')">+</button>
     <button class="ni" onclick="goPage('savings',this)">
-      <span class="ni-ico">🎯</span><span class="ni-lbl">Tabungan</span>
+      <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span><span class="ni-lbl">Tabungan</span>
     </button>
     <button class="ni" onclick="goPage('transactions',this)">
-      <span class="ni-ico">📋</span><span class="ni-lbl">Semua</span>
+      <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.5" fill="currentColor"/><circle cx="3.5" cy="12" r="1.5" fill="currentColor"/><circle cx="3.5" cy="18" r="1.5" fill="currentColor"/></svg></span><span class="ni-lbl">Semua</span>
     </button>
   </div>
 </div>
