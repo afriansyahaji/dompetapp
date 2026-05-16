@@ -358,7 +358,7 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
       <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span><span class="ni-lbl">Tabungan</span>
     </button>
     <button class="ni" onclick="goPage('transactions',this)">
-      <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.5" fill="currentColor"/><circle cx="3.5" cy="12" r="1.5" fill="currentColor"/><circle cx="3.5" cy="18" r="1.5" fill="currentColor"/></svg></span><span class="ni-lbl">Semua</span>
+      <span class="ni-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.5" fill="currentColor"/><circle cx="3.5" cy="12" r="1.5" fill="currentColor"/><circle cx="3.5" cy="18" r="1.5" fill="currentColor"/></svg></span><span class="ni-lbl">History</span>
     </button>
   </div>
 </div>
@@ -511,7 +511,10 @@ function loadConfig(){
     document.getElementById('cfg').style.display='none';
     document.getElementById('app').style.display='flex';
     if(email)document.getElementById('login-email').value=email;
-    loadTx();
+    loadTx().then(()=>{
+      const last=localStorage.getItem('last_page')||'home';
+      if(last!=='home')goPage(last);
+    });
   }else{
     document.getElementById('cfg').style.display='flex';
     if(email)document.getElementById('login-email').value=email;
@@ -840,17 +843,49 @@ function exportCSV(){
 }
 
 // NAV
-const ptitles={home:'Beranda',stats:'Statistik',savings:'Tabungan',transactions:'Semua Transaksi'};
+const ptitles={home:'Beranda',stats:'Statistik',savings:'Tabungan',transactions:'History Transaksi'};
+const pageOrder=['home','stats','savings','transactions'];
+
 function goPage(page,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   document.querySelectorAll('.ni').forEach(b=>b.classList.remove('active'));
-  if(el)el.classList.add('active');
+  // activate correct nav button
+  if(el){el.classList.add('active');}
+  else{
+    const idx=pageOrder.indexOf(page);
+    const btns=document.querySelectorAll('.ni');
+    // nav order: home(0), stats(1), [fab], savings(2), transactions(3)
+    const map={home:0,stats:1,savings:2,transactions:3};
+    if(map[page]!==undefined)btns[map[page]].classList.add('active');
+  }
   document.querySelector('.topbar-logo').textContent=page==='home'?'dompet.':ptitles[page];
+  localStorage.setItem('last_page',page);
   if(page==='stats')renderStats();
   if(page==='savings')renderSavings();
   if(page==='transactions')renderAllTx();
 }
+
+// ── SWIPE ──
+(function(){
+  let sx=0,sy=0;
+  const content=document.querySelector ? null : null;
+  document.addEventListener('touchstart',e=>{
+    sx=e.touches[0].clientX;
+    sy=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<40||Math.abs(dy)>Math.abs(dx)*0.8)return;
+    const cur=document.querySelector('.page.active');
+    if(!cur)return;
+    const curPage=cur.id.replace('page-','');
+    const idx=pageOrder.indexOf(curPage);
+    if(dx<-40&&idx<pageOrder.length-1)goPage(pageOrder[idx+1]);
+    else if(dx>40&&idx>0)goPage(pageOrder[idx-1]);
+  },{passive:true});
+})();
 
 // TOAST
 function showToast(msg){
