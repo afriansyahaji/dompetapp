@@ -226,20 +226,34 @@ body{background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-he
   <p style="font-size:12px;color:var(--muted);text-align:center">Cukup sekali, tidak perlu diulang</p>
 </div>
 
-<!-- LOGIN SCREEN -->
+<!-- LOGIN / REGISTER SCREEN -->
 <div id="cfg" style="display:none">
   <div>
     <div class="cfg-logo">dompet.</div>
-    <div class="cfg-sub">Masuk ke akunmu</div>
+    <div class="cfg-sub" id="auth-sub">Masuk ke akunmu</div>
   </div>
+
+  <!-- Auth tabs -->
+  <div style="display:flex;background:var(--s1);border:1px solid var(--border);border-radius:var(--rs);padding:4px;gap:4px">
+    <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;background:var(--acc);color:#0d0d0d;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:800;padding:10px;cursor:pointer;transition:all .2s">Masuk</button>
+    <button id="tab-register" onclick="switchAuthTab('register')" style="flex:1;background:transparent;color:var(--dim);border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;padding:10px;cursor:pointer;transition:all .2s">Daftar</button>
+  </div>
+
   <div class="cfg-card">
     <label>Email</label>
     <input type="email" id="login-email" placeholder="kamu@email.com" autocomplete="email">
     <label>Password</label>
     <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    <div id="register-fields" style="display:none;flex-direction:column;gap:12px">
+      <label>Konfirmasi Password</label>
+      <input type="password" id="login-pass2" placeholder="••••••••">
+    </div>
   </div>
-  <div id="login-err" style="font-size:13px;color:var(--red);text-align:center;display:none;padding:4px 0">Email atau password salah</div>
-  <button class="btn-acc" id="login-btn" onclick="doLogin()">Masuk →</button>
+
+  <div id="login-err" style="font-size:13px;color:var(--red);text-align:center;display:none;padding:4px 0"></div>
+  <div id="login-ok" style="font-size:13px;color:var(--green);text-align:center;display:none;padding:4px 0"></div>
+
+  <button class="btn-acc" id="login-btn" onclick="doAuth()">Masuk →</button>
   <button class="btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="showSetup()">⚙️ Ubah konfigurasi API</button>
 </div>
 
@@ -459,45 +473,97 @@ function saveSetup(){
 }
 
 // ── AUTH ──
-async function doLogin(){
+let authMode='login';
+
+function switchAuthTab(mode){
+  authMode=mode;
+  const isLogin=mode==='login';
+  document.getElementById('tab-login').style.background=isLogin?'var(--acc)':'transparent';
+  document.getElementById('tab-login').style.color=isLogin?'#0d0d0d':'var(--dim)';
+  document.getElementById('tab-register').style.background=isLogin?'transparent':'var(--acc)';
+  document.getElementById('tab-register').style.color=isLogin?'var(--dim)':'#0d0d0d';
+  document.getElementById('register-fields').style.display=isLogin?'none':'flex';
+  document.getElementById('login-btn').textContent=isLogin?'Masuk →':'Daftar →';
+  document.getElementById('auth-sub').textContent=isLogin?'Masuk ke akunmu':'Buat akun baru';
+  document.getElementById('login-err').style.display='none';
+  document.getElementById('login-ok').style.display='none';
+}
+
+async function doAuth(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-pass').value;
   if(!email||!pass){showToast('Isi email dan password!');return}
   const btn=document.getElementById('login-btn');
-  btn.textContent='Masuk...';btn.disabled=true;
-  document.getElementById('login-err').style.display='none';
-  try{
-    const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{
-      method:'POST',
-      headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({email,password:pass})
-    });
-    const d=await r.json();
-    if(!r.ok)throw new Error(d.error_description||d.msg||'Login gagal');
-    AUTH_TOKEN=d.access_token;
-    localStorage.setItem('auth_token',AUTH_TOKEN);
-    localStorage.setItem('auth_email',email);
-    document.getElementById('cfg').style.display='none';
-    document.getElementById('app').style.display='flex';
-    loadTx();
-  }catch(e){
-    document.getElementById('login-err').style.display='block';
-  }finally{
-    btn.textContent='Masuk →';btn.disabled=false;
+  const errEl=document.getElementById('login-err');
+  const okEl=document.getElementById('login-ok');
+  errEl.style.display='none';okEl.style.display='none';
+  btn.disabled=true;
+
+  if(authMode==='register'){
+    const pass2=document.getElementById('login-pass2').value;
+    if(pass!==pass2){errEl.textContent='Password tidak sama!';errEl.style.display='block';btn.disabled=false;return}
+    if(pass.length<6){errEl.textContent='Password minimal 6 karakter!';errEl.style.display='block';btn.disabled=false;return}
+    btn.textContent='Mendaftar...';
+    try{
+      const r=await fetch(SB_URL+'/auth/v1/signup',{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({email,password:pass})
+      });
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error_description||d.msg||'Gagal daftar');
+      if(d.access_token){
+        // Auto login after register
+        AUTH_TOKEN=d.access_token;
+        localStorage.setItem('auth_token',AUTH_TOKEN);
+        localStorage.setItem('auth_email',email);
+        document.getElementById('cfg').style.display='none';
+        document.getElementById('app').style.display='flex';
+        loadTx();
+      }else{
+        okEl.textContent='✓ Akun berhasil dibuat! Silakan masuk.';
+        okEl.style.display='block';
+        switchAuthTab('login');
+        document.getElementById('login-email').value=email;
+      }
+    }catch(e){
+      errEl.textContent=e.message;errEl.style.display='block';
+    }finally{btn.textContent='Daftar →';btn.disabled=false;}
+
+  }else{
+    btn.textContent='Masuk...';
+    try{
+      const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{
+        method:'POST',
+        headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({email,password:pass})
+      });
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error_description||d.msg||'Email atau password salah');
+      AUTH_TOKEN=d.access_token;
+      localStorage.setItem('auth_token',AUTH_TOKEN);
+      localStorage.setItem('auth_email',email);
+      if(d.user&&d.user.id)localStorage.setItem('user_id',d.user.id);
+      document.getElementById('cfg').style.display='none';
+      document.getElementById('app').style.display='flex';
+      loadTx();
+    }catch(e){
+      errEl.textContent=e.message;errEl.style.display='block';
+    }finally{btn.textContent='Masuk →';btn.disabled=false;}
   }
 }
 
 async function doLogout(){
-  try{
-    await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+AUTH_TOKEN}});
-  }catch(e){}
+  try{await fetch(SB_URL+'/auth/v1/logout',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+AUTH_TOKEN}});}catch(e){}
   AUTH_TOKEN='';
   localStorage.removeItem('auth_token');
   localStorage.removeItem('auth_email');
+  localStorage.removeItem('user_id');
   document.getElementById('app').style.display='none';
   document.getElementById('cfg').style.display='flex';
   document.getElementById('login-email').value='';
   document.getElementById('login-pass').value='';
+  switchAuthTab('login');
 }
 
 function loadConfig(){
@@ -554,7 +620,7 @@ async function saveTx(){
   const time=document.getElementById('inp-time').value;
   if(!amt||!cat||!date||!time){showToast('Lengkapi semua field!');return}
   try{
-    await sbFetch('transactions',{method:'POST',prefer:'return=minimal',body:JSON.stringify({type:txType,amount:amt,category:cat,description:desc,date,time})});
+    await sbFetch('transactions',{method:'POST',prefer:'return=minimal',body:JSON.stringify({type:txType,amount:amt,category:cat,description:desc,date,time,user_id:localStorage.getItem('user_id')||undefined})});
     closeModal();showToast('Tersimpan! ✓');loadTx();
   }catch(e){showToast('Gagal: '+e.message)}
 }
